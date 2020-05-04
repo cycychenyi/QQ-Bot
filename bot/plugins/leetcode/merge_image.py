@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+
 import cv2
 import numpy as np
 
@@ -23,10 +24,10 @@ class MergeImage(object):
             image = cv2.imread(file_path)[:, :-10]
             self.__images.append(image)
 
-    def __find_first_different_line(self, first_image: bytes, second_image: bytes) -> int:
-        head = second_image[:200, :]
-        for i in range(self.__height - 200):
-            tail = first_image[i:(i + 200), :]
+    def __find_first_different_line(self, first_image: bytes, second_image: bytes, same_line: int = 64) -> int:
+        head = second_image[:same_line, :]
+        for i in range(self.__height - same_line):
+            tail = first_image[i:(i + same_line), :]
             if (tail == head).all():
                 return self.__height - i
         return 0
@@ -43,4 +44,6 @@ class MergeImage(object):
         self.__images_dir = images_dir
         self.__read_images()
         self.__merge_images()
-        cv2.imwrite(new_image_path, self.__new_image_data)
+        res, buffer = cv2.imencode('.png', self.__new_image_data)
+        with open(new_image_path, 'wb') as f:
+            f.write(buffer)

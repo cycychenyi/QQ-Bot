@@ -1,7 +1,6 @@
 .idea/
-leetcode/images/
-screenshots/
 private_config.py
+bot/plugins/leetcode/screenshots/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

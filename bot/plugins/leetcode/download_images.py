@@ -4,23 +4,29 @@ import datetime
 import json
 import os
 import shutil
+import sys
 import time
 from typing import Dict
-import requests
 
+import requests
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver import ActionChains
 from selenium.webdriver.chrome.options import Options
 
-from private_config import leetcode
-from leetcode.merge_image import MergeImage
+sys.path.append(
+    os.path.dirname(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(__file__)))))
+from bot.plugins.leetcode.merge_image import MergeImage
+from private_config import leetcode, coolq_image_dir
 
 problems_all_url = 'https://leetcode.com/api/problems/all/'
 problems_base_url = 'https://leetcode.com/problems/'
 login_url = 'https://leetcode.com/accounts/login'
-screenshots_dir = 'screenshots'
-images_dir = 'images'
+screenshots_dir = os.path.join(os.path.dirname(__file__), 'screenshots')
+images_dir = os.path.join(coolq_image_dir, 'leetcode')
 
 
 def log(message: str) -> None:
@@ -50,7 +56,8 @@ def init_driver() -> webdriver.Chrome:
     log('正在初始化 driver...')
     chrome_options = Options()
     chrome_options.add_argument('--headless')
-    driver = webdriver.Chrome(executable_path='chromedriver.exe', options=chrome_options)
+    executable_path = os.path.join(os.path.dirname(__file__), 'chromedriver.exe')
+    driver = webdriver.Chrome(executable_path=executable_path, options=chrome_options)
     driver.implicitly_wait(3)
     log('成功初始化 driver')
     return driver
@@ -73,16 +80,22 @@ def login(driver: webdriver.Chrome) -> None:
 def get_screenshots(driver: webdriver.Chrome, question_url: str) -> None:
     # 获取一个题目的所有截图
     driver.get(question_url)
-    # time.sleep(1)
     split_bar = driver.find_element_by_xpath('//*[@id="app"]/div/div[3]/div[1]/div/div[2]/div')
     ActionChains(driver).drag_and_drop_by_offset(split_bar, 100, 0).perform()
-    # time.sleep(1)
-    related_topics = driver.find_element_by_class_name('header__2RZv')
-    related_topics.click()
+    i = 0
+    while i < 10:
+        try:
+            related_topics = driver.find_element_by_class_name('header__2RZv')
+            related_topics.click()
+            break
+        except WebDriverException as e:
+            log('可能是还没加载完，导致 relate_topics 还无法点击')
+            log(str(e))
+            time.sleep(1)
+            i += 1
     question_description = driver.find_element_by_xpath(
         '//*[@id="app"]/div/div[3]/div[1]/div/div[1]/div/div[1]/div[1]/div/div[2]/div'
     )
-    # time.sleep(1)
     images = []
     index = 0
     while True:
@@ -96,8 +109,9 @@ def get_screenshots(driver: webdriver.Chrome, question_url: str) -> None:
             index += 1
 
     # 新建文件夹，存放截图
-    if not os.path.exists(screenshots_dir):
-        os.mkdir(screenshots_dir)
+    if os.path.exists(screenshots_dir):
+        shutil.rmtree(screenshots_dir)
+    os.mkdir(screenshots_dir)
     for i in range(len(images)):
         with open(os.path.join(screenshots_dir, f'{i}.png'), 'wb') as f:
             f.write(images[i])
@@ -110,22 +124,21 @@ def get_image(driver: webdriver.Chrome, question_id: int, question__title_slug: 
     log(f'题目地址为 {question_url}')
     while True:
         try:
-            log(f'正在获取 {question_id} {question__title_slug} 的截图...')
+            log(f'开始截图...')
             get_screenshots(driver, question_url)
-            log(f'成功获取 {question_id} {question__title_slug} 的截图')
+            log(f'成功获取截图')
             break
         except NoSuchElementException as e:
             log('可能是跳转到中文网站，导致没有分割条')
             log(str(e))
-        except WebDriverException as e:
-            log('可能是还没加载完，导致 relate_topics 还无法点击')
-            log(str(e))
 
     log('正在拼接图片...')
+    if not os.path.exists(images_dir):
+        os.mkdir(images_dir)
     merge_image = MergeImage()
     image_path = os.path.join(images_dir, '{:0>4d}-{}.png'.format(question_id, question__title_slug))
     merge_image.merge(screenshots_dir, image_path)
-    log('成功拼接图片')
+    log(f'成功拼接图片，存储到 {image_path}')
 
     # 删除截图文件夹
     if os.path.exists(screenshots_dir):
