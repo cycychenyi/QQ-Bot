@@ -18,7 +18,6 @@ class MergeImage(object):
         first_image = os.path.join(self.__images_dir, os.listdir(self.__images_dir)[0])
         image = cv2.imread(first_image)[:, :-10]
         self.__height, self.__width = image.shape[0], image.shape[1]
-        print(self.__height, self.__width)
         for filename in os.listdir(self.__images_dir):
             file_path = os.path.join(self.__images_dir, filename)
             image = cv2.imread(file_path)[:, :-10]
@@ -38,7 +37,6 @@ class MergeImage(object):
             first_image = self.__images[i]
             second_image = self.__images[i + 1]
             start = self.__find_first_different_line(first_image, second_image)
-            print(i + 1, start)
             self.__new_image_data = np.append(self.__new_image_data, self.__images[i + 1][start:, :], axis=0)
 
     def merge(self, images_dir: str, new_image_path: str) -> None:
