@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import platform
+
 # coolq
-superusers = {12345678}
-coolq_image_dir = r'***'
+superusers = {1725145436}
+if 'Windows' in platform.platform():
+    coolq_image_dir = '***/data/image'
+else:
+    coolq_image_dir = '***/data/image'
 
 # leetcode
 leetcode = {

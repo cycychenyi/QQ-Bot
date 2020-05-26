@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 import os
 
 import nonebot
@@ -13,4 +14,3 @@ if __name__ == '__main__':
         'bot.plugins'
     )
     nonebot.run()
-

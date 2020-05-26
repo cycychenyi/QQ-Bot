@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 import os
 import re
 import sys
@@ -23,7 +24,6 @@ async def leetcode(session: CommandSession):
 
 @leetcode.args_parser
 async def _(session: CommandSession):
-
     stripped_arg = session.current_arg_text.strip()
     if not stripped_arg:
         session.pause('想看哪一题呢？')

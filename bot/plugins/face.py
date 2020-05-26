@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from nonebot import on_command, CommandSession, permission as perm
+from nonebot import CommandSession, on_command, permission as perm
 
 
 @on_command('face', aliases=('表情',), permission=perm.SUPERUSER)

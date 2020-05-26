@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import os
+import random
 
 from private_config import coolq_image_dir
-import random
 
 
 async def get_image(question_id: str) -> str:

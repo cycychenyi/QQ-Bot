@@ -1,0 +1,5 @@
+nonebot
+opencv-python
+pip-chill
+requests
+selenium
