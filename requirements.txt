@@ -1,5 +1,5 @@
+baidu-aip
 nonebot
 opencv-python
 pip-chill
-requests
 selenium

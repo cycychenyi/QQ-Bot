@@ -11,21 +11,20 @@ import time
 from typing import Dict
 
 import requests
-from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
-from selenium.webdriver import ActionChains
+from selenium.webdriver import ActionChains, Chrome
 from selenium.webdriver.chrome.options import Options
 
 qq_bot_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 sys.path.append(qq_bot_dir)
 from bot.plugins.leetcode.merge_image import MergeImage
-from private_config import leetcode, coolq_image_dir
+from private_config import leetcode, coolq
 
 problems_all_url = 'https://leetcode.com/api/problems/all/'
 problems_base_url = 'https://leetcode.com/problems/'
 login_url = 'https://leetcode.com/accounts/login'
 screenshots_dir = os.path.join(os.path.dirname(__file__), 'screenshots')
-images_dir = os.path.join(coolq_image_dir, 'leetcode')
+images_dir = os.path.join(coolq['image_dir'], 'leetcode')
 
 
 def log(message: str) -> None:
@@ -50,22 +49,22 @@ def get_title_slugs() -> Dict[int, str]:
     return question_urls
 
 
-def init_driver() -> webdriver.Chrome:
+def init_driver() -> Chrome:
     # 初始化 driver
     log('正在初始化 driver...')
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     if 'Windows' in platform.platform():
-        executable_path = os.path.join(qq_bot_dir, 'chromedriver.exe')
+        executable_path = os.path.join(qq_bot_dir, 'chromedriver', 'chromedriver.exe')
     else:
-        executable_path = os.path.join(qq_bot_dir, 'chromedriver')
-    driver = webdriver.Chrome(executable_path=executable_path, options=chrome_options)
+        executable_path = os.path.join(qq_bot_dir, 'chromedriver', 'chromedriver')
+    driver = Chrome(executable_path=executable_path, options=chrome_options)
     driver.implicitly_wait(3)
     log('成功初始化 driver')
     return driver
 
 
-def login(driver: webdriver.Chrome) -> None:
+def login(driver: Chrome) -> None:
     # 登录
     log('尝试登录 LeetCode...')
     driver.get(login_url)
@@ -79,7 +78,7 @@ def login(driver: webdriver.Chrome) -> None:
     time.sleep(1)
 
 
-def get_screenshots(driver: webdriver.Chrome, question_url: str) -> None:
+def get_screenshots(driver: Chrome, question_url: str) -> None:
     # 获取一个题目的所有截图
     driver.get(question_url)
     split_bar = driver.find_element_by_xpath('//*[@id="app"]/div/div[3]/div[1]/div/div[2]/div')
@@ -119,7 +118,7 @@ def get_screenshots(driver: webdriver.Chrome, question_url: str) -> None:
             f.write(images[i])
 
 
-def get_image(driver: webdriver.Chrome, question_id: int, question__title_slug: str) -> None:
+def get_image(driver: Chrome, question_id: int, question__title_slug: str) -> None:
     # 获取一个题目的图片
     log(f'正在获取 {question_id} {question__title_slug} 的图片...')
     question_url = problems_base_url + question__title_slug

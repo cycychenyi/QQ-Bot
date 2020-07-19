@@ -4,11 +4,11 @@
 import os
 import random
 
-from private_config import coolq_image_dir
+from private_config import coolq
 
 
 async def get_image(question_id: str) -> str:
-    images_dir = os.path.join(coolq_image_dir, 'leetcode')
+    images_dir = os.path.join(coolq['image_dir'], 'leetcode')
     if not int(question_id):
         image = random.sample(os.listdir(images_dir), 1)[0]
         file_path = os.path.join('leetcode', image)
