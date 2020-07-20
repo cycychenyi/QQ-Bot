@@ -3,15 +3,33 @@
 
 import platform
 
-# coolq
-superusers = {1725145436}
+# CoolQ
 if 'Windows' in platform.platform():
-    coolq_image_dir = '***/data/image'
+    coolq_image_dir = '***/酷Q Pro/data/image'
 else:
-    coolq_image_dir = '***/data/image'
+    coolq_image_dir = '***/coolq/data/image'
+coolq = {
+    'superusers': {123456},
+    'tomato_todo_superusers': {654321},
+    'image_dir': coolq_image_dir
+}
 
-# leetcode
+# LeetCode
 leetcode = {
     'leetcode_username': '***',
     'leetcode_password': '***'
 }
+
+# 百度文字识别
+baidu_ocr = {
+    'app_id': '***',
+    'api_key': '***',
+    'secret_key': '***'
+}
+
+# 背单词打卡 iOCR 模板
+iocr_templates = {
+    '墨墨': '***',
+    '欧路': '***'
+}
+

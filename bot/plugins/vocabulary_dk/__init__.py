@@ -34,7 +34,7 @@ OPTIONS：
     -e EXPIRE_TIME, --expire EXPIRE_TIME  该周期结束时间，格式为 %Y-%m-%dT%H:%M:%S
 
 注意：
-    当 -l 与其他参数同时出现时，只列出所有 QQ 群信息，不做其他操作。
+    -a, -d, -l 参数一次只能使用一个。
 '''.strip()
 INFO_USAGE = '''
 背单词打卡 > 个人信息
@@ -89,7 +89,6 @@ async def admin(session: CommandSession):
             await session.send('「背单词打卡」当前没有 QQ 群')
         else:
             await session.send('「背单词打卡」的所有 QQ 群：\n' + '\n'.join(result))
-        # 当 -l 与其他参数同时出现时，只列出所有 QQ 群信息，不做其他操作
         return
 
     # 向「背单词打卡」添加一个 QQ 群，需要 -g 和 -e 参数
@@ -249,15 +248,15 @@ async def info(session: CommandSession):
         message = '\n' + INFO_USAGE
     elif field_name in {'all', '完整'}:
         message = f'QQ：{user_id}\n' \
-               f'称呼：{name}\n' \
-               f'软件：{software}\n' \
-               f'目标新词数：{target_new_words}\n' \
-               f'目标复习数：{target_old_words}\n' \
-               f'目标总词数：{target_all_words}\n' \
-               f'积分：{score}\n' \
-               f'总词数：{all_words}\n' \
-               f'连续天数：{days}\n' \
-               f'目标过期时间：{expire}'
+                  f'称呼：{name}\n' \
+                  f'软件：{software}\n' \
+                  f'目标新词数：{target_new_words}\n' \
+                  f'目标复习数：{target_old_words}\n' \
+                  f'目标总词数：{target_all_words}\n' \
+                  f'积分：{score}\n' \
+                  f'总词数：{all_words}\n' \
+                  f'连续天数：{days}\n' \
+                  f'目标过期时间：{expire}'
     elif field_name in {'user_id', 'QQ'}:
         message = f'QQ：{user_id}'
     elif field_name in {'name', '称呼'}:

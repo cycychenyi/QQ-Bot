@@ -37,6 +37,22 @@ create table vocabulary_dk_user
     expire datetime not null
 );
 '''.strip()
+tomato_todo_group = '''
+create table tomato_todo_group
+(
+	group_id int
+		constraint tomato_todo_group_pk
+			primary key
+);
+'''.strip()
+tomato_todo_info = '''
+create table tomato_todo_info
+(
+	password int
+		constraint tomato_todo_group_pk
+			primary key
+);
+'''.strip()
 
 if __name__ == '__main__':
     # 初始化数据库
@@ -45,6 +61,10 @@ if __name__ == '__main__':
         database.run(vocabulary_dk_group)
     if ('vocabulary_dk_user',) not in tables:
         database.run(vocabulary_dk_user)
+    if ('tomato_todo_group',) not in tables:
+        database.run(tomato_todo_group)
+    if ('tomato_todo_info',) not in tables:
+        database.run(tomato_todo_info)
     # 运行 nonebot
     nonebot.init(config)
     nonebot.load_plugins(
