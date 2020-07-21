@@ -4,7 +4,6 @@
 import datetime
 import os
 import sys
-from typing import List
 
 from nonebot import CommandSession, IntentCommand, NLPSession, NoticeSession, on_command, on_natural_language, \
     on_notice, permission as perm
@@ -17,7 +16,8 @@ sys.path.append(
                 os.path.dirname(__file__)))))
 from utils import database
 from bot.plugins.vocabulary_dk.iocr import iocr
-from bot.plugins.vocabulary_dk.vocabulary_dk_utils import read_card, add_user, update_user
+from bot.plugins.vocabulary_dk.vocabulary_dk_utils import read_card, add_user, update_user, check_user, \
+    get_today_expire, get_today_score, learn_more
 
 ADMIN_USAGE = '''
 背单词打卡管理
@@ -59,7 +59,7 @@ OPTIONS：
         积分（score）
         总词数（all_words）
         连续天数（days）
-        目标过期时间（expire）
+        目标过期时间（target_expire）
 '''.strip()
 
 
@@ -143,6 +143,7 @@ async def dk(session: CommandSession):
     """
     根据用户使用的软件模板，对图片进行匹配，如果匹配则返回积分等信息
     如果是表情包之类的非打卡图片则不返回任何信息
+    一天内多次打卡取最高值
     :param session: 当前会话
     :return: 无
     """
@@ -157,44 +158,59 @@ async def dk(session: CommandSession):
         await session.send(f'[CQ:at,qq={user_id}] 群名片格式不对哦，请修改后重新打卡')
         return
 
-    (user_id, name, software, target_new_words, target_old_words, target_all_words,
-     score, all_words, days, expire) = result[0]
+    (user_id, name, software, target_new_words, target_old_words, target_all_words, target_expire,
+     today_new_words, today_old_words, today_all_words, today_expire, score, all_words, days) = result[0]
+    print(today_expire)
+    if today_expire:
+        today_expire = datetime.datetime.strptime(today_expire, '%Y-%m-%d %H:%M:%S')
+
+    print(result[0])
 
     # 根据软件模板识别图片
     iocr_result = iocr(image_url, software)
     print(iocr_result)
     if iocr_result['match']:
-        # 如果匹配，进行积分和总词数的累加
+        # 如果匹配，执行以下操作，否则忽略
         # 有些情况会多识别出句点，如把「52」识别为「52.」
-        today_new_words = int(iocr_result['new_words'].replace('.', ''))
-        today_old_words = int(iocr_result['old_words'].replace('.', ''))
-        today_all_words = today_new_words + today_old_words
-        # 总词数（新词数 + 复习数）每增加 1000 获得 1 分
-        if (all_words + today_all_words) // 1000 > all_words // 1000:
+        t_new_words = int(iocr_result['new_words'].replace('.', ''))
+        t_old_words = int(iocr_result['old_words'].replace('.', ''))
+        t_all_words = t_new_words + t_old_words
+
+        if today_expire and today_expire > datetime.datetime.now() and \
+                not learn_more(today_new_words, today_old_words, t_new_words, t_old_words):
+            # 如果比当日上次打卡少，则忽略
+            return
+
+        if not today_expire or today_expire < datetime.datetime.now():
+            # 如果 today_expire 未设置（从未打卡）或未过期（今日尚未打卡），则进行积分和总词数的累加
+            # 该操作与后一种情况合并了
+            pass
+
+        if today_expire and today_expire > datetime.datetime.now() and \
+                learn_more(today_new_words, today_old_words, t_new_words, t_old_words):
+            # 如果比当日上次打卡多，则取最高值（扣掉上次，再加上本次）
+            if (all_words - today_all_words) // 1000 < all_words // 1000:
+                score -= 1
+            all_words -= today_all_words
+            old_score = get_today_score(target_new_words, target_old_words, target_all_words,
+                                        today_new_words, today_old_words, today_all_words)
+            score -= old_score
+
+        # 总词数（新词数 + 复习数）每增加 1000 获得 1 分，每日上限 1 分
+        if (all_words + t_all_words) // 1000 > all_words // 1000:
             score += 1
-        all_words += today_all_words
-        # 达到目标得到 1 积分，没达到目标按实际数量除以目标数量再乘以 0.6 计算
-        if not target_all_words:
-            # 目标格式一：每日新词数 + 每日复习数
-            if today_new_words >= target_new_words and today_old_words >= target_old_words:
-                today_score = 1
-            else:
-                if target_old_words:
-                    today_score = 0.6 * today_all_words / (target_new_words + target_old_words)
-                else:
-                    today_score = 0.6 * today_new_words / target_new_words
-        else:
-            # 目标格式二：每日新旧单词总数
-            if today_all_words >= target_all_words:
-                today_score = 1
-            else:
-                today_score = 0.6 * today_all_words / target_all_words
+        all_words += t_all_words
+        today_score = get_today_score(target_new_words, target_old_words, target_all_words,
+                                      t_new_words, t_old_words, t_all_words)
         score += today_score
+        today_expire = get_today_expire().strftime('%Y-%m-%d %H:%M:%S')
 
         # 更新数据库
-        rowcount = database.run(f'update vocabulary_dk_user '
-                                f'set score={score}, all_words={all_words} '
-                                f'where user_id={user_id};')
+        rowcount = database.run(f"update vocabulary_dk_user "
+                                f"set score={score}, all_words={all_words}, "
+                                f"today_new_words={t_new_words}, today_old_words={t_old_words}, "
+                                f"today_all_words={t_all_words}, today_expire='{today_expire}'"
+                                f"where user_id={user_id};")
         # 消息提示
         if rowcount:
             score = format(round(score, 2), ',')
@@ -236,14 +252,15 @@ async def info(session: CommandSession):
         await session.send(f'[CQ:at,qq={user_id}] 群名片格式不对哦，请修改后重新查询')
         return
 
-    (user_id, name, software, target_new_words, target_old_words, target_all_words,
-     score, all_words, days, expire) = result[0]
+    (user_id, name, software, target_new_words, target_old_words, target_all_words, target_expire,
+     today_new_words, today_old_words, today_all_words, today_expire, score, all_words, days) = result[0]
 
     # 如果没有参数，则列出积分、总词数
     if not field_name:
         await session.send(f'[CQ:at,qq={user_id}]\n当前积分：{score}\n总词数：{all_words}\n')
         return
 
+    # TODO: 今天背单词数，四个新字段
     if field_name in {'help', '帮助'}:
         message = '\n' + INFO_USAGE
     elif field_name in {'all', '完整'}:
@@ -256,7 +273,7 @@ async def info(session: CommandSession):
                   f'积分：{score}\n' \
                   f'总词数：{all_words}\n' \
                   f'连续天数：{days}\n' \
-                  f'目标过期时间：{expire}'
+                  f'目标过期时间：{target_expire}'
     elif field_name in {'user_id', 'QQ'}:
         message = f'QQ：{user_id}'
     elif field_name in {'name', '称呼'}:
@@ -275,8 +292,8 @@ async def info(session: CommandSession):
         message = f'总词数：{all_words}'
     elif field_name in {'days', '连续天数'}:
         message = f'连续天数：{days}'
-    elif field_name in {'expire', '目标过期时间'}:
-        message = f'目标过期时间：{expire}'
+    elif field_name in {'target_expire', '目标过期时间'}:
+        message = f'目标过期时间：{target_expire}'
     else:
         message = ''
 
@@ -303,55 +320,3 @@ async def _(session: NLPSession):
         return
 
     return IntentCommand(90.0, 'dk', current_arg=session.msg_images[0])
-
-
-def check_user(user_id: int, group_id: int, card: str) -> List:
-    """
-    检查用户
-    - 如果是新用户，检查群名片格式
-        - 如果格式不正确，返回 []
-        - 如果格式正确，添加用户
-    - 如果是老用户，检查目标是否过期
-        - 如果目标过期，检查群名片格式
-            - 如果格式不正确，返回 []
-            - 如果格式正确，更新用户目标
-    :param user_id: 用户 QQ 号
-    :param group_id: 群聊 QQ 号
-    :param card: 用户群名片
-    :return: 如果群名片格式不正确，返回 []，其他情况返回用户信息 result，result 中字段顺序为：
-             user_id, name, software, target_new_words, target_old_words,
-             target_all_words, score, all_words, days, expire
-    """
-
-    # 查数据库，获取目标
-    result = database.retrieve(f'select user_id, name, software, '
-                               f'target_new_words, target_old_words, target_all_words, '
-                               f'score, all_words, days, expire from vocabulary_dk_user where user_id={user_id};')
-
-    if not result:
-        # 如果是新用户，检查群名片格式
-        card_result = read_card(card)
-        if card_result['error']:
-            # 如果格式不正确，返回 []
-            return []
-        # 如果格式正确，添加用户
-        add_user(group_id, user_id, card_result)
-        result = database.retrieve(f'select user_id, name, software, '
-                                   f'target_new_words, target_old_words, target_all_words, '
-                                   f'score, all_words, days, expire from vocabulary_dk_user where user_id={user_id};')
-    else:
-        # 如果是老用户，检查目标是否过期
-        expire = result[0][-1]
-        expire = datetime.datetime.strptime(expire, '%Y-%m-%d %H:%M:%S')
-        now = datetime.datetime.now()
-        if now > expire:
-            # 如果目标过期，检查群名片格式
-            card_result = read_card(card)
-            if card_result['error']:
-                # 如果格式不正确，返回 []
-                return []
-            # 如果格式正确，更新用户目标
-            update_user(group_id, user_id, card_result)
-
-    print(result)
-    return result

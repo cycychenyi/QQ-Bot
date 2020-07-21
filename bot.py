@@ -31,10 +31,14 @@ create table vocabulary_dk_user
     target_new_words int default null,
     target_old_words int default null,
     target_all_words int default null,
+    target_expire datetime not null,
+    today_new_words int default null,
+    today_old_words int default null,
+    today_all_words int default null,
+    today_expire datetime default null,
     score int default 0 not null,
     all_words int default 0 not null,
-    days int default 0 not null,
-    expire datetime not null
+    days int default 0 not null
 );
 '''.strip()
 tomato_todo_group = '''

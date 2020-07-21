@@ -10,7 +10,8 @@ else:
     coolq_image_dir = '***/coolq/data/image'
 coolq = {
     'superusers': {123456},
-    'tomato_todo_superusers': {654321},
+    'tomato_todo_superusers': {123456},
+    'test_users': {123456},
     'image_dir': coolq_image_dir
 }
 
