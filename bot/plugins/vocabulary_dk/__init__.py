@@ -131,6 +131,7 @@ async def group_increase(session: NoticeSession):
     :param session: 当前会话
     :return: 无
     """
+
     groups = database.retrieve('select group_id from vocabulary_dk_group;')
     if (session.ctx['group_id'],) not in groups:
         return
@@ -148,6 +149,14 @@ async def dk(session: CommandSession):
     :return: 无
     """
 
+    groups = database.retrieve('select group_id from vocabulary_dk_group;')
+    # 1. 不处理私聊消息
+    if 'group_id' not in session.ctx:
+        return
+    # 2. 不处理未注册的群聊中的消息
+    if (session.ctx['group_id'],) not in groups:
+        return
+
     group_id = session.ctx['group_id']
     user_id = session.ctx['sender']['user_id']
     card = session.ctx['sender']['card']
@@ -160,7 +169,7 @@ async def dk(session: CommandSession):
 
     (user_id, name, software, target_new_words, target_old_words, target_all_words, target_expire,
      today_new_words, today_old_words, today_all_words, today_expire, score, all_words, days) = result[0]
-    print(today_expire)
+
     if today_expire:
         today_expire = datetime.datetime.strptime(today_expire, '%Y-%m-%d %H:%M:%S')
 
@@ -225,6 +234,7 @@ async def _(session: CommandSession):
     :param session: 当前会话
     :return: 无
     """
+
     session.state['image_url'] = session.current_arg_text
 
 

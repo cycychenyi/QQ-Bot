@@ -17,7 +17,7 @@ create table vocabulary_dk_group
 	group_id int
 		constraint vocabulary_dk_group_pk
 			primary key,
-	expire datetime not null
+	expire text not null
 );
 '''.strip()
 vocabulary_dk_user = '''
@@ -31,11 +31,11 @@ create table vocabulary_dk_user
     target_new_words int default null,
     target_old_words int default null,
     target_all_words int default null,
-    target_expire datetime not null,
+    target_expire text not null,
     today_new_words int default null,
     today_old_words int default null,
     today_all_words int default null,
-    today_expire datetime default null,
+    today_expire text default null,
     score int default 0 not null,
     all_words int default 0 not null,
     days int default 0 not null

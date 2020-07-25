@@ -2,4 +2,5 @@ baidu-aip
 nonebot
 opencv-python
 pip-chill
+redis
 selenium

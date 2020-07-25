@@ -34,3 +34,7 @@ iocr_templates = {
     '欧路': '***'
 }
 
+# Redis
+redis = {
+    'password': '***'
+}

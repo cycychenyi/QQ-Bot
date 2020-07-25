@@ -9,9 +9,17 @@ from utils import database
 
 
 def read_card(card: str) -> Dict:
-    # 群名片格式一：称呼 软件 每天新词数 每天复习数，比如：陈一 欧路 100 自动
-    # 群名片格式二：昵称 软件 每日新旧单词总数，比如：陈一 欧路 300。
-    # 目前可选软件包括：「欧路」、「墨墨」
+    """
+    从群名片读取用户信息
+    群名片格式一：称呼 软件 每天新词数 每天复习数，比如：陈一 欧路 100 自动
+    群名片格式二：昵称 软件 每日新旧单词总数，比如：陈一 欧路 300
+    目前可选软件包括：「欧路」、「墨墨」
+    :param card: 用户群名片
+    :return: 从群名片获取到的信息，成功时 error 字段为 0，失败时 error 字段为 1
+             格式一包括 error、name、software、target_new_words 和 target_old_words 字段
+             格式二包括 error、name、software 和 target_all_words 字段
+    """
+
     match_result = re.match(r'^(?P<name>.+) (?P<software>欧路|墨墨) '
                             r'(?P<target_new_words>\d+) (?P<target_old_words>\d+|自动)$', card)
     if match_result:
@@ -39,6 +47,14 @@ def read_card(card: str) -> Dict:
 
 
 def add_user(group_id: int, user_id: int, card_result: Dict) -> None:
+    """
+    根据从群名片获取到的信息添加用户
+    :param group_id: 群聊 QQ 号
+    :param user_id: 用户 QQ 号
+    :param card_result: 从群名片获取到的信息
+    :return: 无
+    """
+
     name = card_result['name']
     software = card_result['software']
     target_expire = database.retrieve(f'select expire from vocabulary_dk_group where group_id={group_id};')[0][0]
@@ -61,6 +77,13 @@ def add_user(group_id: int, user_id: int, card_result: Dict) -> None:
 
 
 def update_user(group_id: int, user_id: int, card_result: Dict) -> None:
+    """
+    根据从群名片获取到的信息更新用户
+    :param group_id: 群聊 QQ 号
+    :param user_id: 用户 QQ 号
+    :param card_result: 从群名片获取到的信息
+    :return: 无
+    """
     name = card_result['name']
     software = card_result['software']
     target_expire = database.retrieve(f'select expire from vocabulary_dk_group where group_id={group_id};')[0][0]
@@ -146,6 +169,7 @@ def get_today_expire() -> datetime.datetime:
     获取今日打卡的过期时间，即第二天凌晨四点
     :return: 今日打卡的过期时间
     """
+
     now = datetime.datetime.now()
     if now.hour > 4:
         now += datetime.timedelta(days=1)
@@ -165,6 +189,7 @@ def get_today_score(target_new_words: int, target_old_words: int, target_all_wor
     :param today_all_words: 今日总词数
     :return: 今日积分
     """
+
     if not target_all_words:
         # 目标格式一：每日新词数 + 每日复习数
         if today_new_words >= target_new_words and today_old_words >= target_old_words:
@@ -194,6 +219,7 @@ def learn_more(today_new_words: int, today_old_words: int,
     :param t_old_words: 本次打卡复习数
     :return: 是否多学了
     """
+
     if t_new_words > today_new_words or t_old_words > today_old_words:
         return True
     else:

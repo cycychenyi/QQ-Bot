@@ -12,7 +12,7 @@ sys.path.append(
         os.path.dirname(
             os.path.dirname(
                 os.path.dirname(__file__)))))
-from utils import database
+from utils import database, redis
 from private_config import coolq
 
 ADMIN_USAGE = '''
@@ -113,10 +113,46 @@ async def password(session: CommandSession):
     :param session: 当前会话
     :return: 无
     """
+
+    groups = database.retrieve('select group_id from tomato_todo_group;')
+    # 1. 不处理私聊消息
+    if 'group_id' not in session.ctx:
+        return
+    # 2. 不处理未注册的群聊中的消息
+    if (session.ctx['group_id'],) not in groups:
+        return
+
     user_id = session.ctx['sender']['user_id']
     result = database.retrieve('select password from tomato_todo_info;')
     if result:
+        if user_id in coolq['tomato_todo_superusers'] \
+                and (str(result[0][0]) in session.ctx['raw_message'] or '密码' in session.ctx['raw_message']):
+            return
+        # 添加 key，10 分钟过期
+        redis.set(f'tomato_todo_password_{user_id}', 'answered', ex=60000)
         await session.send(f'[CQ:at,qq={user_id}] 自习室密码：{result[0][0]}，要加油噢~')
+
+
+@on_command('thanks', aliases=('thx', 'thank you', '谢谢', '感谢', '多谢'), only_to_me=False)
+async def thanks(session: CommandSession):
+    """
+    答复感谢
+    :param session: 当前会话
+    :return: 无
+    """
+
+    groups = database.retrieve('select group_id from tomato_todo_group;')
+    # 1. 不处理私聊消息
+    if 'group_id' not in session.ctx:
+        return
+    # 2. 不处理未注册的群聊中的消息
+    if (session.ctx['group_id'],) not in groups:
+        return
+
+    user_id = session.ctx['sender']['user_id']
+    if redis.get(f'tomato_todo_password_{user_id}'):
+        redis.delete(f'tomato_todo_password_{user_id}')
+        await session.send(f'[CQ:at,qq={user_id}] 不客气，快开始专注吧！')
 
 
 @on_natural_language(keywords={'密码'}, only_to_me=False)
@@ -136,3 +172,22 @@ async def _(session: NLPSession):
         return
 
     return IntentCommand(90.0, 'password')
+
+
+@on_natural_language(keywords={'thanks', 'thx', 'thank you', '谢谢', '感谢', '多谢'}, only_to_me=False)
+async def _(session: NLPSession):
+    """
+    识别感谢命令
+    :param session: 当前会话
+    :return: 如果是「番茄」里的群聊的「密码」命令，调用 thanks 命令，否则不处理
+    """
+
+    groups = database.retrieve('select group_id from tomato_todo_group;')
+    # 1. 不处理私聊消息
+    if 'group_id' not in session.ctx:
+        return
+    # 2. 不处理未注册的群聊中的消息
+    if (session.ctx['group_id'],) not in groups:
+        return
+
+    return IntentCommand(90.0, 'thanks')

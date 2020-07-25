@@ -18,6 +18,11 @@ from private_config import baidu_ocr, iocr_templates
 
 
 def auth() -> str:
+    """
+    授权，获取 access_token
+    :return: access_token
+    """
+
     host = f'https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&' \
            f'client_id={baidu_ocr["api_key"]}&client_secret={baidu_ocr["secret_key"]}'
     response = requests.get(host).json()
@@ -25,6 +30,13 @@ def auth() -> str:
 
 
 def iocr(image_url: str, template: str) -> Dict:
+    """
+    识别图片中的新词数、复习数
+    :param image_url: 图片链接
+    :param template: 软件模板
+    :return: result 有三个字段：match（匹配为 True，否则为 False）、new_words、old_words
+    """
+
     result = {
         'match': False,
         'new_words': -1,
