@@ -9,6 +9,7 @@ database_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'qq_bot
 
 
 def retrieve(statement: str) -> List[Tuple]:
+    print(statement)
     connection = sqlite3.connect(database_file)
     cursor = connection.cursor()
     cursor.execute(statement)
@@ -17,6 +18,7 @@ def retrieve(statement: str) -> List[Tuple]:
 
 
 def run(statement: str) -> int:
+    print(statement)
     connection = sqlite3.connect(database_file)
     cursor = connection.cursor()
     cursor.execute(statement)

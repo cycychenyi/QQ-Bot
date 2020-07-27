@@ -4,7 +4,7 @@
 import os
 import sys
 
-from nonebot import CommandSession, IntentCommand, NLPSession, on_command, on_natural_language
+from nonebot import CommandSession, IntentCommand, NLPSession, on_command, on_natural_language, NoticeSession, on_notice
 from nonebot.argparse import ArgumentParser
 
 sys.path.append(
@@ -153,6 +153,23 @@ async def thanks(session: CommandSession):
     if redis.get(f'tomato_todo_password_{user_id}'):
         redis.delete(f'tomato_todo_password_{user_id}')
         await session.send(f'[CQ:at,qq={user_id}] 不客气，快开始专注吧！')
+
+
+@on_notice('group_increase')
+async def group_increase(session: NoticeSession):
+    """
+    新人进群时提醒修改群名片
+    :param session: 当前会话
+    :return: 无
+    """
+
+    groups = database.retrieve('select group_id from tomato_todo_group;')
+    if (session.ctx['group_id'],) not in groups:
+        return
+    result = database.retrieve('select password from tomato_todo_info;')
+    if result:
+        await session.send(f'[CQ:at,qq={session.ctx["user_id"]}] '
+                           f'新来的小伙伴，自习室加入码 CF5352EC，密码 {result[0][0]} ~')
 
 
 @on_natural_language(keywords={'密码'}, only_to_me=False)
